@@ -1,0 +1,73 @@
+<html manifest="v1.appcache">
+<head>
+<script>
+
+// We should get a message 
+window.onmessage = (e) => {
+	// We only respond to SYNs
+	if (e.data !== "SYN")
+		return
+	// Clear out ourself
+	window.onmessage = null;
+	let port = e.ports[0];
+	// Ready is triggered once the page is ready to load
+	const ready = () => {
+		// onmessage 
+		window.port = port
+		port.onmessage = (e) => {
+			let response = {};
+			let id = e.data.id;
+			let input = new URL(e.data.input);
+			input.host = window.location.host;
+			let init = e.data.init;
+			fetch(input, init).then((resp) => {
+				resp.blob().then((blob) => {
+					response[id] = {
+						"resolve": {
+							blob: blob
+						}
+					};
+					port.postMessage(response);
+				}, (err) => {
+					response[id] = {
+						"reject": err
+					};
+					port.postMessage(response);
+				});
+			}, (err) => {
+				response[id] = {
+					"reject": err
+				};
+				port.postMessage(response);
+			});
+		}
+		// Send the ACK that we're ready
+		port.postMessage("ACK");
+		// If we successfully cache ourselves, let the parent know for future rebinds
+		if (window.applicationCache.status == window.applicationCache.CACHED || window.applicationCache.status == window.applicationCache.IDLE) {
+			// TODO: Handle state changes over time
+			port.postMessage("CACHED");
+		}
+		window.applicationCache.oncached = (e) => {
+			port.postMessage("CACHED");
+		}
+	}
+	// Loop pinging until we don't get a pong, indicating the page is ready
+	let ping = setInterval(() => {
+		fetch("/.well-known/rebind/v1.ping", {
+			headers: new Headers({
+				"Pragma": "no-cache",
+				"Cache-Control": "no-cache"
+			}),
+			cache: "no-cache"
+		}).then((resp) => resp.text()).then((body) => {
+			if (body !== "pong") {
+				clearInterval(ping)
+				ready()
+			}
+		})
+	}, 2000);
+};
+</script>
+</head>
+</html>
