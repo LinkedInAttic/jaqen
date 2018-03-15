@@ -89,7 +89,7 @@ func (m *RebindManager) MakeOffer(ctx context.Context, req WebSocketHostRequest)
 	// Loop each method and configure
 	var offers []RebindOffer
 	for _, method := range methods {
-		id := uuid.NewV4()
+		id, _ := uuid.NewV4()
 		offers = append(offers, RebindOffer{
 			ID:  id,
 			URL: fmt.Sprintf("http://%s.%s:%s/.well-known/rebind/v1.frame", id, m.base, req.Host.Port),
