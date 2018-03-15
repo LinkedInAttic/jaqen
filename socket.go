@@ -90,7 +90,7 @@ func (m *RebindManager) WebSocketHandler(w http.ResponseWriter, req *http.Reques
 		return
 	}
 	// Each socket has an ID
-	id := uuid.NewV4()
+	id, _ := uuid.NewV4()
 	log.Infof(`New socket connection "%s"`, id)
 	// Create a cancel-able child context
 	ctx, triggerClose := context.WithCancel(req.Context())
